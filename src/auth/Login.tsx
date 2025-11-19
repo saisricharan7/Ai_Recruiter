@@ -1,20 +1,31 @@
-import React from 'react';
+import React,{ useState} from 'react';
+import{ useNavigate } from 'react-router-dom';
 import {Button} from '../components/ui/button';
+
 import { supabase } from '../services/supabaseClient';
 
-const Login= () => {
-
-    const signInWithGoogle = async () => {
+const Login: React.FC = () => {
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState<boolean>(false);
+    const signInWithGoogle = async (): Promise<void> => {
         // Implement Google Sign-In logic here
-        const { data, error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-        });
-        
-        if (error) {
-            console.error('Error during sign-in:', error.message);
-        }else{
-            window.location.href='/checkUsers'
+        try{
+            setLoading(true);
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: `${window.location.origin}/home` }
+            });
+             if (error) {
+                console.error('Error during sign-in:', error.message);
+                setLoading(false);
+            }
+        }catch(error){
+            console.error('Unexpected error:', error);
+            setLoading(false);
         }
+        
+        
+       
     }
 
     return (

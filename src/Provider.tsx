@@ -1,23 +1,39 @@
-import React, {  useEffect } from 'react'
+import React, {useState, useEffect,useContext,createContext  } from 'react'
 import type{ReactNode} from 'react'
 import { supabase } from './services/supabaseClient';
+
+
 
 interface ProviderProps {
   children: ReactNode
 }
 
+export interface UserType {
+  email?: string;
+  name?: string;
+  picture?: string;
+}
+
+interface UserContextType {
+  user: UserType | null;
+  setUser: React.Dispatch<React.SetStateAction<UserType | null>>;
+}
+
+export const UserDetailContext = createContext<UserContextType|null>(null)
+
 const Provider:React.FC<ProviderProps>  = ({children}) => {
     useEffect(() => {
-        CreateNewUser()
+       CreateNewUser()
+
     }, [])
-    const [user,setUser]=React.useState<any>(null)
+    const [user,setUser]=useState<UserType|null>(null)
     const CreateNewUser=async() => {
         supabase.auth.getUser().then(async({data:{user}})=>{
             let { data: Users, error } = await supabase
                 .from('Users')
                 .select("*")
                 .eq('email',user?.email)
-            console.log(Users)
+            
             if(Users?.length===0){
                 const {data,error}= await supabase.from('Users').insert([
                     { email: user?.email, name: user?.user_metadata.full_name, picture: user?.user_metadata.avatar_url }
@@ -31,6 +47,10 @@ const Provider:React.FC<ProviderProps>  = ({children}) => {
                 }
                 
                 return
+            }else if(Users){
+                console.log("User already exists")
+                setUser(Users[0])
+                return
             }
             if(error){
                 console.log(error)
@@ -38,11 +58,21 @@ const Provider:React.FC<ProviderProps>  = ({children}) => {
         })
     }
   return (
+    <UserDetailContext.Provider value={{user,setUser}}>
     <div>
-        <h1>Checking Users</h1>
+        
         {children}
     </div>
+    </UserDetailContext.Provider>
   )
+}
+
+
+
+export const useUser= ():UserContextType =>{
+    const context = useContext(UserDetailContext);
+    if (!context) throw new Error("useUser must be used within UserProvider");
+    return context;
 }
 
 export default Provider
